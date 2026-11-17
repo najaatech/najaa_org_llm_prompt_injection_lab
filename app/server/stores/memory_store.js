@@ -1,4 +1,5 @@
-import { createUserDocument, initialProgress, trimAttempts } from '../models/user_model.js';
+import { createUserDocument, initialProgress, nicknameKey, trimAttempts } from '../models/user_model.js';
+import { byConversationOrder, MAX_LOADED_MESSAGES } from '../models/conversation_model.js';
 import { publicDocuments, privateDocumentsFor } from '../models/knowledge_document_model.js';
 import { vaultEntriesFor } from '../models/vault_entry_model.js';
 
@@ -6,9 +7,10 @@ import { vaultEntriesFor } from '../models/vault_entry_model.js';
 export class MemoryStore {
   users = new Map();
   otps = new Map();
+  sessions = new Map();
   docs = new Map(publicDocuments.map((document) => [document._id, { ...document }]));
   vault = [];
-
+  conversations = [];
   // ---- learners ----
 
   async getUserByEmail(email) {
@@ -32,12 +34,91 @@ export class MemoryStore {
 
   async saveUser(user) {
     user.attempts = trimAttempts(user.attempts);
-    this.users.set(user._id, user);
+    const existing = this.users.get(user._id);
+    // Copy only what the database saves, so a stale copy cannot erase quiz scores.
+    if (existing && existing !== user) Object.assign(existing, { solved: user.solved, progress: user.progress, attempts: user.attempts });
+    else this.users.set(user._id, user);
   }
 
   async resetUser(id) {
     const user = this.users.get(id);
     if (user) Object.assign(user, initialProgress());
+    this.conversations = this.conversations.filter((message) => message.userId !== String(id));
+  }
+
+  /** Saves a quiz result only if this quiz has no result yet. Returns false when one already exists. */
+  async saveQuizResult(userId, quizId, record) {
+    const user = this.users.get(userId);
+    if (!user) return false;
+    user.quizScores ??= {};
+    if (Object.hasOwn(user.quizScores, quizId)) return false;
+    user.quizScores[quizId] = record;
+    return true;
+  }
+
+  /** Records when a quiz was started, unless it was already started or submitted. The first start wins. */
+  async startQuiz(userId, quizId, startedAt) {
+    const user = this.users.get(userId);
+    if (!user) return;
+    user.quizStarts ??= {};
+    if (Object.hasOwn(user.quizStarts, quizId) || Object.hasOwn(user.quizScores ?? {}, quizId)) return;
+    user.quizStarts[quizId] = startedAt;
+  }
+
+  /** Records when a learner first opened a flag challenge. There is no time limit; the first open wins. */
+  async startLevel(userId, levelId, startedAt) {
+    const user = this.users.get(userId);
+    if (!user) return;
+    user.flagTimes ??= {};
+    user.flagTimes[levelId] ??= {};
+    user.flagTimes[levelId].startedAt ??= startedAt;
+  }
+
+  /** Records when a flag was first submitted correctly. The first correct submission wins. */
+  async markLevelSolved(userId, levelId, solvedAt) {
+    const user = this.users.get(userId);
+    if (!user) return;
+    user.flagTimes ??= {};
+    user.flagTimes[levelId] ??= {};
+    user.flagTimes[levelId].solvedAt ??= solvedAt;
+  }
+
+  /**
+   * Gives a learner a nickname. Returns false when another learner already has it (ignoring case),
+   * or, with onlyIfMissing, when this learner already has one.
+   */
+  async setNickname(userId, nickname, { onlyIfMissing = false } = {}) {
+    const user = this.users.get(userId);
+    if (!user || (onlyIfMissing && user.nickname)) return false;
+    const key = nicknameKey(nickname);
+    if ([...this.users.values()].some((other) => other._id !== userId && other.nicknameKey === key)) return false;
+    Object.assign(user, { nickname, nicknameKey: key });
+    return true;
+  }
+
+  /** The fields the leaderboard needs for every learner. Never includes the email. */
+  async listLeaderboardUsers() {
+    return [...this.users.values()].map((user) => ({
+      id: user._id, nickname: user.nickname ?? null, solved: user.solved, quizScores: user.quizScores ?? {}, flagTimes: user.flagTimes ?? {}
+    }));
+  }
+
+  async appendConversation(documents) {
+    this.conversations.push(...documents.map((document) => structuredClone(document)));
+  }
+
+  async listConversations(userId) {
+    return this.conversations
+      .filter((message) => message.userId === String(userId))
+      .sort(byConversationOrder)
+      .slice(-MAX_LOADED_MESSAGES)
+      .map((message) => structuredClone(message));
+  }
+
+  async clearConversation(userId, levelId, model) {
+    this.conversations = this.conversations.filter(
+      (message) => !(message.userId === String(userId) && message.levelId === levelId && message.model === model)
+    );
   }
 
   // ---- knowledge documents ----
@@ -82,6 +163,21 @@ export class MemoryStore {
 
   async deleteOtp(email) {
     this.otps.delete(email);
+  }
+
+  // ---- sign-in sessions (keyed by the hash of the cookie's session id) ----
+
+  async putSession(idHash, session) {
+    this.sessions.set(idHash, { ...session });
+  }
+
+  async getSession(idHash) {
+    const session = this.sessions.get(idHash);
+    return session ? { ...session } : null;
+  }
+
+  async deleteSession(idHash) {
+    this.sessions.delete(idHash);
   }
 
   async close() {}

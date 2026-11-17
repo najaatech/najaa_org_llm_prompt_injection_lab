@@ -1,4 +1,7 @@
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+
+/** SHA-256 of a session id. Only this hash is stored, so a copy of the database cannot be used to sign in. */
+export const hashToken = (token) => createHash('sha256').update(String(token)).digest('hex');
 
 /** Random 48-character hex string, used for session ids and CSRF tokens. */
 export function generateToken() {

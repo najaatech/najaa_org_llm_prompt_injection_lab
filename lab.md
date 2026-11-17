@@ -15,9 +15,3 @@ https://www.youtube.com/watch?v=hLixGgTvAVI
 
 https://genai.owasp.org/llmrisk/llm01-prompt-injection/
 
-
-I want to create a project to teach non-technical to medium-technical students about prompt injection
-
-I want to be able to give this lab within 2 hours
-
-if possible, download a local model that would fit comfortablly on a macbook similar to this but 16 GB and only the project will run on it

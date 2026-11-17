@@ -3,10 +3,10 @@ import { readCookie } from '../utils/cookies.js';
 
 /** Attaches req.session and req.sessionId when the cookie belongs to an active session. */
 export function sessionLoader() {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const { sessions } = req.app.locals.services;
     const sessionId = readCookie(req, SESSION_COOKIE);
-    const session = sessions.find(sessionId);
+    const session = await sessions.find(sessionId);
 
     if (session) {
       req.session = session;

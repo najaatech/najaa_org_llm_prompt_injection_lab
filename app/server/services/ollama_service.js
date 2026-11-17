@@ -23,6 +23,15 @@ const clamp = (value, low, high, fallback) =>
 const measured = (value) => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null);
 const nanosecondsToMs = (value) => (measured(value) === null ? null : value / 1e6);
 
+/**
+ * The models this lab uses, with whether each can answer right now (Ollama is reachable and the
+ * model is installed). The names come from fixed settings, never from a request.
+ */
+export const localModelStatus = (installedNames, reachable) => [
+  ...ALLOWED_MODELS.map((name) => ({ name, role: 'chat', running: reachable && installedNames.has(name) })),
+  { name: embedModel, role: 'embedding', running: reachable && (installedNames.has(embedModel) || installedNames.has(`${embedModel}:latest`)) }
+];
+
 /** Checks that Ollama answers and which of the lab's models are installed. */
 export async function readiness() {
   try {
@@ -41,7 +50,8 @@ export async function readiness() {
       digest: match?.digest || null,
       models: ALLOWED_MODELS.map((name) => ({ name, installed: installed.has(name) })),
       embedModel,
-      embedInstalled
+      embedInstalled,
+      localModels: localModelStatus(installed, true)
     };
   } catch {
     return {
@@ -50,7 +60,8 @@ export async function readiness() {
       model,
       models: ALLOWED_MODELS.map((name) => ({ name, installed: false })),
       embedModel,
-      embedInstalled: false
+      embedInstalled: false,
+      localModels: localModelStatus(new Set(), false)
     };
   }
 }

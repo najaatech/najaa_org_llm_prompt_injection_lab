@@ -4,13 +4,33 @@ import { authLoginSchema, authOtpVerifySchema } from '../validators/request_sche
 import { consumeRateLimit } from '../middleware/auth_guards.js';
 import { build_session_view } from './session_controller.js';
 import { httpError } from '../utils/http_error.js';
+import { ensureNickname } from '../services/nickname_service.js';
 import { safeEqual } from '../utils/tokens.js';
+import { otpRequired } from '../services/local_signin.js';
 
-/** POST /api/auth/request: emails a one-time sign-in code. */
+/** Finds or creates the account for this email and starts a session for it (a new sign-in replaces this browser's old one). */
+async function signIn(req, res, email) {
+  const { store, sessions } = req.app.locals.services;
+  const user = (await store.getUserByEmail(email)) || (await store.createUser(email));
+  await ensureNickname(store, user);
+  if (req.sessionId) await sessions.end(req.sessionId);
+  const { id, session } = await sessions.start(user._id);
+  res.cookie(SESSION_COOKIE, id, {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: req.secure,
+    maxAge: SESSION_TTL_MS,
+    path: '/'
+  });
+  res.json(build_session_view(session, user));
+}
+
+/** POST /api/auth/request: emails a one-time sign-in code. On a lab run only on this computer it signs in directly instead. */
 export async function auth_login(req, res) {
   const { store, mailer } = req.app.locals.services;
   consumeRateLimit(req, 'otp-request', RATE_LIMITS.otpRequest);
   const { email } = authLoginSchema.parse(req.body);
+  if (!otpRequired(req)) return signIn(req, res, email);
 
   // Respect the resend cooldown but answer identically, so the response reveals nothing.
   const existing = await store.getOtp(email);
@@ -24,7 +44,7 @@ export async function auth_login(req, res) {
 
 /** POST /api/auth/verify: checks the code and starts a session. */
 export async function auth_otp_verify(req, res) {
-  const { store, sessions } = req.app.locals.services;
+  const { store } = req.app.locals.services;
   consumeRateLimit(req, 'otp-verify', RATE_LIMITS.otpVerify);
   const { email, code } = authOtpVerifySchema.parse(req.body);
   const invalidCode = () => httpError('Invalid or expired code.', 403);
@@ -43,24 +63,12 @@ export async function auth_otp_verify(req, res) {
   }
 
   await store.deleteOtp(email);
-  const user = (await store.getUserByEmail(email)) || (await store.createUser(email));
-
-  // A new sign-in always replaces the previous session of this browser.
-  if (req.sessionId) sessions.end(req.sessionId);
-  const { id, session } = sessions.start(user._id);
-  res.cookie(SESSION_COOKIE, id, {
-    httpOnly: true,
-    sameSite: 'strict',
-    secure: req.secure,
-    maxAge: SESSION_TTL_MS,
-    path: '/'
-  });
-  res.json(build_session_view(session, user));
+  await signIn(req, res, email);
 }
 
 /** POST /api/logout */
-export function auth_logout(req, res) {
-  req.app.locals.services.sessions.end(req.sessionId);
+export async function auth_logout(req, res) {
+  await req.app.locals.services.sessions.end(req.sessionId);
   res.clearCookie(SESSION_COOKIE, { path: '/' });
   res.json({ ok: true });
 }

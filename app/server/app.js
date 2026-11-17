@@ -1,4 +1,5 @@
 import express from 'express';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JSON_BODY_LIMIT } from './config.js';
 import { apiGuard } from './middleware/api_guard.js';
@@ -30,7 +31,7 @@ export function createApp(options = {}) {
   const services = {
     store: options.store,
     mailer: options.mailer || createMailgunMailer(),
-    sessions: new SessionRegistry(),
+    sessions: new SessionRegistry(options.store),
     rateLimiter: new RateLimiter(),
     requestGate,
     readiness: options.readiness || readiness,
@@ -39,6 +40,7 @@ export function createApp(options = {}) {
     llm: options.llm || generate,
     embed: options.embed || embed,
     publicUrl: options.publicUrl || null,
+    localOnly: Boolean(options.localOnly),
     distDir: options.distDir || fileURLToPath(new URL('../dist/', import.meta.url))
   };
 
@@ -59,6 +61,8 @@ export function createApp(options = {}) {
   app.use('/api', apiNotFound);
 
   app.get('/', page_index);
+  // The Start page embeds the built Slidev deck from here (see scripts/build_slides.mjs).
+  app.use('/slides', express.static(join(services.distDir, 'slides'), { dotfiles: 'deny' }));
   app.use(express.static(services.distDir, { dotfiles: 'deny', index: false }));
   app.use(errorHandler);
 

@@ -50,4 +50,14 @@ export const ragQuiz = {
 };
 export const catalog = { levels: levels.map(level => ({ ...level, mitigation: mitigations[level.id] })), missions, sortingGame, ragQuiz };
 
+/**
+ * What the browser receives. Quiz answers and explanations are left out: grading happens on the
+ * server, and the learner sees the right answers only inside their own saved result.
+ */
+export const publicCatalog = {
+  ...catalog,
+  sortingGame: { ...sortingGame, lines: sortingGame.lines.map(({ correct, why, ...line }) => line) },
+  ragQuiz: { ...ragQuiz, questions: ragQuiz.questions.map(({ correct, why, ...question }) => question) }
+};
+
 export { target, base };

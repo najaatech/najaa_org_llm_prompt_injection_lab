@@ -20,8 +20,19 @@ export const RATE_LIMITS = {
   otpVerify: 10,
   challenge: 30,
   flag: 20,
-  attempt: 30
+  levelStart: 60,
+  chatReset: 20,
+  quiz: 20,
+  attempt: 30,
+  profile: 10,
+  leaderboard: 30
 };
+
+/** Every quiz is timed. The server measures the time from the moment the learner presses Start. */
+export const QUIZ_TIME_LIMIT_MS = 5 * 60 * 1000;
+
+/** Extra time allowed for the network when the browser submits right at the end. */
+export const QUIZ_GRACE_MS = 15 * 1000;
 
 /**
  * Reads the process settings from environment variables.

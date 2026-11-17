@@ -15,25 +15,29 @@
     "preflight": "node scripts/preflight.mjs",
     "benchmark": "node scripts/benchmark.mjs",
     "model:pull": "ollama pull qwen2.5:3b && ollama pull qwen2.5:1.5b && ollama pull nomic-embed-text",
-    "build": "vite build",
+    "build": "vite build && node scripts/build_slides.mjs",
     "dev": "vite",
-    "prestart": "vite build",
-    "prestart:lan": "vite build",
-    "prestart:ngrok": "vite build"
+    "prestart": "npm run build",
+    "prestart:lan": "npm run build",
+    "prestart:ngrok": "npm run build"
   },
   "dependencies": {
     "@emotion/cache": "11.14.0",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@modelcontextprotocol/sdk": "1.32.2",
+    "@mui/icons-material": "9.5.0",
     "@mui/material": "9.5.0",
+    "@mui/x-charts": "9.18.0",
     "@mui/x-chat": "9.0.0-alpha.22",
+    "boring-avatars": "2.0.4",
     "express": "5.1.0",
     "helmet": "8.1.0",
     "mongodb": "7.9.0",
     "qrcode": "1.5.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "three": "^0.187.0",
     "zod": "4.6.7"
   },
   "devDependencies": {

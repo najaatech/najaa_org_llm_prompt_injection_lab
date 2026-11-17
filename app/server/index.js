@@ -4,6 +4,7 @@ import { model } from './services/ollama_service.js';
 import { createMailgunMailer } from './services/mailgun_service.js';
 import { MongoStore } from './stores/mongo_store.js';
 import { listLocalUrls } from './utils/network_urls.js';
+import { isLocalOnlyServer } from './services/local_signin.js';
 
 /** Starts the real server: loads .env, connects to MongoDB and listens. Run with `npm start`. */
 async function startServer() {
@@ -29,11 +30,12 @@ async function startServer() {
     store,
     mailer,
     allowedOrigins: localUrls,
-    publicUrl: settings.publicUrl
+    publicUrl: settings.publicUrl,
+    localOnly: isLocalOnlyServer(settings)
   });
 
   const server = runtime.app.listen(settings.port, settings.host, () => {
-    printBanner({ localUrls, publicUrl: settings.publicUrl, mailer });
+    printBanner({ localUrls, publicUrl: settings.publicUrl, mailer, localOnly: isLocalOnlyServer(settings) });
   });
 
   const shutdown = async () => {
@@ -46,9 +48,10 @@ async function startServer() {
   process.on('SIGTERM', shutdown);
 }
 
-function printBanner({ localUrls, publicUrl, mailer }) {
+function printBanner({ localUrls, publicUrl, mailer, localOnly }) {
   const addresses = publicUrl ? [...localUrls, `${publicUrl}  (public)`] : localUrls;
-  const mailStatus = mailer.configured() ? 'configured' : 'NOT configured, sign-in codes cannot be sent';
+  const mailStatus = localOnly ? 'not needed, sign-in needs no code on this computer'
+    : mailer.configured() ? 'configured' : 'NOT configured, sign-in codes cannot be sent';
   const warning = publicUrl
     ? 'PUBLIC mode: anyone with the public link can sign in and use this lab. Stop it when the session ends.'
     : 'LAN mode is trusted HTTP only. Never expose publicly.';
