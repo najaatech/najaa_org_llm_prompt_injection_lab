@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "trust-lab-fictional-notes-defended": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${workspaceFolder}/app/server/services/mcp_server.js"],
+      "env": {"LAB_MCP_DEFENDED": "1", "LAB_MCP_DESCRIPTION": "Read public fictional campus facts only."}
+    }
+  }
+}

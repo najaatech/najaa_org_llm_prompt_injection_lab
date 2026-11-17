@@ -1,0 +1,43 @@
+{
+  "name": "prompt-injection-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node app/server/index.js",
+    "start:lan": "HOST=0.0.0.0 node app/server/index.js",
+    "start:ngrok": "node scripts/start_ngrok.mjs",
+    "test": "node --test app/tests/*.test.js",
+    "check": "for file in $(find app/server scripts -name '*.js' -o -name '*.mjs'); do node --check \"$file\" || exit 1; done",
+    "preflight": "node scripts/preflight.mjs",
+    "benchmark": "node scripts/benchmark.mjs",
+    "model:pull": "ollama pull qwen2.5:3b && ollama pull qwen2.5:1.5b && ollama pull nomic-embed-text",
+    "build": "vite build",
+    "dev": "vite",
+    "prestart": "vite build",
+    "prestart:lan": "vite build",
+    "prestart:ngrok": "vite build"
+  },
+  "dependencies": {
+    "@emotion/cache": "11.14.0",
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@mui/material": "9.5.0",
+    "@mui/x-chat": "9.0.0-alpha.22",
+    "express": "5.1.0",
+    "helmet": "8.1.0",
+    "mongodb": "7.9.0",
+    "qrcode": "1.5.4",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.3.0",
+    "vite": "8.3.8"
+  }
+}
