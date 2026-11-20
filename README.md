@@ -48,7 +48,7 @@ Open http://localhost:3000 and enter your email. On a local-only run you are sig
 
 ## Sharing with an audience (ngrok and QR code)
 
-Install ngrok and authenticate it once with `ngrok config add-authtoken <token>`, then run `npm run start:ngrok`. The script starts the tunnel, waits for its https address and starts the server with it as `PUBLIC_URL`. On the home page choose **Show QR code** and project it so the audience can scan it. Set `NGROK_DOMAIN` to use a reserved ngrok domain.
+[Install ngrok](https://ngrok.com/docs/getting-started/) (on macOS: `brew install ngrok`) and authenticate it once with `ngrok config add-authtoken <token>`, then run `npm run start:ngrok`. The script starts the tunnel, waits for its https address and starts the server with it as `PUBLIC_URL`. On the home page choose **Show QR code** and project it so the audience can scan it. Set `NGROK_DOMAIN` to use a reserved ngrok domain.
 
 The server listens only on this computer; ngrok is the single way in. Anyone with the link can sign in and use the lab (each learner's data stays separate, enforced server-side), so stop it when the session ends. Free ngrok accounts show a one-time interstitial page before the app.
 
