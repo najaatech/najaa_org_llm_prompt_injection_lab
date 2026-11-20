@@ -13,8 +13,7 @@ try {
   process.exitCode = 1;
 } finally { await client.close(); }
 const configured = createMailgunMailer().configured();
-console.log(`Mailgun: ${configured ? 'configured (delivery not tested)' : 'not configured'}`);
-if (!configured) process.exitCode = 1;
+console.log(`Mailgun: ${configured ? 'configured (delivery not tested)' : 'not configured (only needed for npm run start:lan and start:ngrok)'}`);
 const status=await readiness();
 console.log(`Node ${process.version} / ${process.arch}`);
 console.log(`Model: ${model}\nOllama available: ${status.available}\nModel installed: ${status.installed}\nDigest: ${status.digest || 'not available'}\nEmbedding model: ${status.embedModel}\nEmbedding model installed: ${status.embedInstalled}`);

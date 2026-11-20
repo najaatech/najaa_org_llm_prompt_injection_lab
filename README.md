@@ -21,11 +21,13 @@ Flags are random per user, created at the first verified login and never sent to
 - Node.js 24 or later
 - MongoDB on `localhost:27017` (or set `MONGODB_URI`)
 - Ollama running natively with `qwen2.5:3b`, `qwen2.5:1.5b` and `nomic-embed-text` (`npm run model:pull`)
-- A Mailgun domain for sign-in codes
+- A Mailgun domain for sign-in codes, only for `npm run start:lan` and `npm run start:ngrok`. Plain `npm start` on this computer signs in without a code.
 
 ## Setup
 
-Create `.env` (ignored by git):
+No seed or init step is needed. The server creates its indexes and public documents on start, and per-user data at first login.
+
+For a local-only run no `.env` is required. For LAN or ngrok sharing, copy `.env.example` to `.env` (ignored by git) and fill in:
 
 ```
 MAILGUN_API_KEY=...
@@ -37,11 +39,12 @@ Optional: `MAILGUN_BASE_URL`, `MONGODB_URI`, `MONGODB_DB` (default `prompt_injec
 
 ```
 npm install
+npm run model:pull
 npm run preflight
 npm start   # builds the client first
 ```
 
-Open http://localhost:3000, enter your email and the six-digit code you receive. Codes last 10 minutes, allow 5 attempts and have a 60 second resend cooldown. Sessions last eight hours and are stored in MongoDB (expired ones are removed by a TTL index), so they survive a server restart.
+Open http://localhost:3000 and enter your email. On a local-only run you are signed in directly; over LAN or ngrok you enter the six-digit code you receive. Codes last 10 minutes, allow 5 attempts and have a 60 second resend cooldown. Sessions last eight hours and are stored in MongoDB (expired ones are removed by a TTL index), so they survive a server restart.
 
 ## Sharing with an audience (ngrok and QR code)
 
