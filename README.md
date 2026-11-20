@@ -1,12 +1,14 @@
 # Understanding and mitigating prompt injection vulnerabilities
 
-A deliberately vulnerable, single-user local lab for learning prompt injection against a small local LLM. Everything runs on your machine: a native Ollama model, a local MongoDB, and a fixed fictional MCP server. Do not expose it to the Internet.
+A deliberately vulnerable classroom lab for learning prompt injection against a small local LLM. Everything runs on the host machine: a native Ollama model, a local MongoDB, and a fixed fictional MCP server. Several learners can use it at once (each signs in by email and gets a random, changeable nickname; their data stays separate, enforced server-side). It is meant to be run locally or shared for one session through ngrok (see below); do not otherwise expose it to the Internet.
 
 ## What is in it
 
 - **Levels 1-3**: a chat assistant (MUI X Chat interface; choose `qwen2.5:3b` or the weaker `qwen2.5:1.5b`) with a hidden per-user flag. L1 relies on a weak prompt-only guard. L2 adds a stronger prompt, an input keyword filter and exact-match output redaction. L3 lets the model choose a vault key that the server validates before a fixed MongoDB lookup. Submit the flag you obtain to mark a level solved.
 - **Bonus C (MCP)**: a live experiment with an optional defended mode. State is per user. The MCP server only exposes fictional constants.
-- **Sorting game** and **RAG quick quiz**: short deterministic exercises.
+- **Sorting game** ("Instruction or data?"), **RAG quick quiz** and **Build a RAG pipeline** game: short deterministic exercises.
+- **Leaderboards**: one per quiz/game (score, then time) and one per flag level (fastest correct flag, timed from when the level is opened). Learners appear under their nickname.
+- **Slides**: the Slidev deck in `slidedev/` is built into `app/dist/slides` by `npm run build` and served at `/slides/` (shown on the Start page). A failed slide build only logs a warning. See [slidedev/README.md](slidedev/README.md) to edit it.
 
 ## How retrieval works (RAG with embeddings)
 
@@ -39,7 +41,7 @@ npm run preflight
 npm start   # builds the client first
 ```
 
-Open http://localhost:3000, enter your email and the six-digit code you receive. Codes last 10 minutes, allow 5 attempts and have a 60 second resend cooldown. Sessions last eight hours and are kept in memory.
+Open http://localhost:3000, enter your email and the six-digit code you receive. Codes last 10 minutes, allow 5 attempts and have a 60 second resend cooldown. Sessions last eight hours and are stored in MongoDB (expired ones are removed by a TTL index), so they survive a server restart.
 
 ## Sharing with an audience (ngrok and QR code)
 
@@ -47,7 +49,29 @@ Install ngrok and authenticate it once with `ngrok config add-authtoken <token>`
 
 The server listens only on this computer; ngrok is the single way in. Anyone with the link can sign in and use the lab (each learner's data stays separate, enforced server-side), so stop it when the session ends. Free ngrok accounts show a one-time interstitial page before the app.
 
-## Server structure
+## Certificates
+
+After the session, `app/scripts/send_certificates.js` emails each participant a certificate with their results and the top three of every challenge. A participant is a learner who submitted a quiz or game, or opened a flag challenge. It needs the same `.env` and MongoDB as the server.
+
+```
+node app/scripts/send_certificates.js                    # dry run: lists recipients, writes previews to /tmp
+node app/scripts/send_certificates.js --send             # really send the emails
+node app/scripts/send_certificates.js --exclude=a,b      # nicknames left out of rankings and emails
+node app/scripts/send_certificates.js --send --only=a    # email only these nicknames (rankings still use everyone)
+```
+
+## Project structure
+
+```
+app/client/        React + MUI client (Vite): pages, components, hooks, API client
+app/content/       challenge, mitigation, catalog and RAG-stage content
+app/scripts/       send_certificates.js
+app/tests/         unit, HTTP and MongoDB integration tests
+scripts/           preflight, benchmark, ngrok launcher, slide build
+slidedev/          Slidev presentation
+```
+
+### Server
 
 ```
 app/server/
@@ -59,7 +83,7 @@ app/server/
   middleware/     security headers, API guard, session loading, auth guards, errors
   models/         shape of each stored record (user, session, otp, vault entry, document)
   stores/         MongoDB and in-memory storage
-  services/       model, retrieval, email, challenges, missions, MCP
+  services/       model, retrieval, email, challenges, missions, quizzes, leaderboards, nicknames, MCP
   validators/     request schemas
   utils/          small shared helpers
 ```
@@ -68,12 +92,12 @@ app/server/
 
 | Command | Purpose |
 | --- | --- |
-| `npm run build` | Build the React + MUI client into `app/dist` |
+| `npm run build` | Build the React + MUI client and the Slidev deck into `app/dist` |
 | `npm run dev` | Vite dev server on :5173, proxying `/api` to :3000 (run `npm start` too) |
 | `npm start` | Build, then start on 127.0.0.1 |
 | `npm run start:lan` | Bind to all interfaces (trusted network only; HTTP is unencrypted) |
 | `npm run start:ngrok` | Build, open an ngrok tunnel, then start the lab with that public address (see below) |
-| `npm run check` | Syntax check of every server file and script |
+| `npm run check` | Syntax check of every file in `app/server` and `scripts` (not `app/scripts`) |
 | `npm test` | Unit and HTTP tests (fake model and mailer), plus isolated local MongoDB integration; not live model results |
 | `npm run preflight` | Check MongoDB, Mailgun configuration and Ollama |
 | `npm run benchmark` | Time live model requests |
@@ -86,3 +110,4 @@ app/server/
 - Do not put credentials in version control.
 
 `lab.md` holds the original curriculum and sources.
+
