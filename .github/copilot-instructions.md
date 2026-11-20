@@ -1,6 +1,5 @@
 # Prompt Injection Prototype development
 
-- Preserve the mandatory curriculum and original sources in lab.md.
 - Never commit, push, or check deployment status without an explicit user request.
 - Keep simulated outcomes unmistakably separate from actual local model results.
 - Real tool capabilities are limited to fictional constants in the fixed local MCP server. Never add shell execution, arbitrary URLs/files, real credentials or external propagation.

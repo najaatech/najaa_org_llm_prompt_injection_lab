@@ -109,5 +109,3 @@ app/server/
 - Level 3 never passes model output to MongoDB except a key matching `^[a-z0-9-]{1,40}$`, scoped to the signed-in user.
 - Do not put credentials in version control.
 
-`lab.md` holds the original curriculum and sources.
-
